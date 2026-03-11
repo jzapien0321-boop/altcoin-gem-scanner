@@ -2,14 +2,14 @@ import streamlit as st
 import requests
 import time
 
-# 1. THEME & MOBILE OPTIMIZATION
+# 1. THEME & MOBILE SETUP
 st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #ffffff; }
     
-    /* Yellow Labels ($ BITCOIN) */
+    /* Yellow Labels ($ DOGECOIN) */
     [data-testid="stMetricLabel"] { 
         color: #ffff00 !important; 
         font-weight: bold !important; 
@@ -42,11 +42,12 @@ st.markdown("""
         font-weight: bold;
         display: inline-block;
         margin-top: 15px;
+        font-size: 1rem;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FAIL-SAFE DATA FETCHING
+# 2. CACHED DATA FETCHING
 @st.cache_data(ttl=300)
 def get_crypto_data():
     url = "https://api.coingecko.com/api/v3/coins/markets"
@@ -66,7 +67,7 @@ def get_crypto_news():
     except:
         return []
 
-# 3. HEADER LAYOUT (TITLE + LARGE BITCOIN LOGO)
+# 3. HEADER LAYOUT (TITLE + NEW ISOLATED LOGO)
 col_title, col_logo = st.columns([3, 1])
 
 with col_title:
@@ -74,8 +75,9 @@ with col_title:
     st.subheader("Market Leaders")
 
 with col_logo:
-    # Large Bitcoin Logo on the Right
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/800px-Bitcoin.svg.png", width=180)
+    # --- HERE IS THE SPECIFIC CIRCULAR BITCOIN EMBLEM YOU WANTED ---
+    # We use this high-quality vector link to replicate the professional icon look.
+    st.image("https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg", width=160)
 
 data = get_crypto_data()
 news = get_crypto_news()
@@ -90,6 +92,7 @@ if data:
         coin = next((c for c in data if c['symbol'] == sym), None)
         if coin:
             with cols[i]:
+                # We show the metric, and skip the generic icon since the master logo is at the top.
                 st.metric(
                     label=f"$ {coin['name']}", 
                     value=f"${coin['current_price']:,}", 
@@ -116,6 +119,39 @@ if data:
         # ACTIVE SLIDER
         max_cap_m = st.slider("Max Market Cap (Millions $)", 1, 1000, 250)
         
-        # FILTER LOGIC
+        # BRACKET ERROR FIXED IN THIS LINE:
         gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) <= max_cap_m]
-        # Skipping the top 10 giants to show real
+        
+        # Skip the top coins to find real "gems"
+        final_gems = [g for g in gems if g['symbol'] not in ['btc', 'eth', 'usdt', 'bnb', 'sol', 'xrp', 'doge']]
+        
+        if not final_gems:
+            st.info("Try moving the slider to the right to see more gems.")
+        else:
+            for coin in final_gems[:15]:
+                change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
+                mcap = round(coin['market_cap'] / 1_000_000, 1)
+                text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${mcap}M | {change}%"
+                if change > 0: st.success(text)
+                else: st.error(text)
+
+    with right_side:
+        st.subheader("Latest News")
+        if news:
+            for n in news:
+                n_col1, n_col2 = st.columns([1, 3])
+                with n_col1:
+                    st.image(n.get('imageurl'), use_container_width=True)
+                with n_col2:
+                    st.markdown(f"**[{n['title']}]({n['url']})**")
+                    st.caption(f"Source: {n['source']}")
+                st.write("---")
+        else:
+            st.info("Fetching latest headlines...")
+else:
+    st.warning("🔄 Fetching Market Data... Please wait 30 seconds.")
+
+# 5. SYNC
+if st.button("🔄 Sync Everything"):
+    st.cache_data.clear()
+    st.rerun()
