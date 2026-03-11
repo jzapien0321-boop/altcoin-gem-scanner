@@ -2,44 +2,44 @@ import streamlit as st
 import requests
 import time
 
-# 1. Page Config & Professional Dark Theme Background
-st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
+# 1. Page Config - Forces Dark Mode and collapses the sidebar by default
+st.set_page_config(
+    page_title="Altcoin Gem Scanner", 
+    page_icon="💎", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# Custom CSS for the Background and Styling
+# 2. Proper Dark Mode Styling (CSS)
 st.markdown("""
     <style>
-    .main {
+    /* Main background */
+    .stApp {
         background-color: #0e1117;
-        color: #ffffff;
+        color: #fafafa;
     }
-    .stMetric {
-        background-color: #1f2937;
-        padding: 15px;
+    /* Headers */
+    h1, h2, h3, h4 {
+        color: #ffffff !important;
+    }
+    /* Success/Error blocks */
+    div[data-testid="stNotification"] {
         border-radius: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Header
+# 3. Header Section (Totally original name)
 st.markdown("# 💎 Altcoin Gem Scanner")
-st.markdown("### Find the next big altcoin before it pumps")
+st.markdown("### Specialized Small-Cap Market Intelligence")
 st.markdown("---")
 
-# 3. Sidebar for Branding & Ads
-with st.sidebar:
-    st.title("🐂 OnlyBulls Clone")
-    st.write("Professional Market Intelligence")
-    st.markdown("---")
-    st.caption("ADVERTISEMENT")
-    st.info("🚀 [Join the Alpha Group for 100x Calls](https://example.com)")
-    st.markdown("---")
-
 # 4. Filters
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([2, 1])
 with col1:
     max_cap = st.slider("Max Market Cap (Millions $)", 1, 500, 100)
 with col2:
-    st.markdown("#### 🔴 Red = Dropping | 🟢 Green = Pumping")
+    st.markdown("#### 🔴 Down | 🟢 Up")
 
 st.markdown("---")
 
@@ -60,7 +60,7 @@ try:
     # Filtering for those small-cap "Gems"
     gems = [coin for coin in data if coin['market_cap'] and coin['market_cap'] < max_cap * 1000000]
 
-    st.markdown(f"### Found {len(gems)} gems under ${max_cap}M market cap")
+    st.markdown(f"### Found {len(gems)} assets matching your filter")
 
     # 6. Displaying the results
     for coin in gems:
@@ -78,7 +78,7 @@ try:
             st.error(display_text)
 
 except Exception as e:
-    st.warning("Data is refreshing... please wait a few seconds.")
+    st.warning("Connecting to secure data feed...")
 
 # Auto-refresh every 60 seconds
 time.sleep(60)
