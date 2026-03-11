@@ -55,14 +55,17 @@ def get_crypto_data():
     try:
         r = requests.get(url, timeout=10)
         return r.json() if r.status_code == 200 else None
-    except: return None
+    except:
+        return None
 
 @st.cache_data(ttl=600)
 def get_crypto_news():
     url = "https://min-api.cryptocompare.com/data/v2/news/?lang=EN"
     try:
-        return requests.get(url, timeout=5).json().get('Data', [])[:8]
-    except: return []
+        r = requests.get(url, timeout=5)
+        return r.json().get('Data', [])[:8]
+    except:
+        return []
 
 # 3. HEADER & MARKET LEADERS
 st.title("💎 Altcoin Gem Scanner")
@@ -71,4 +74,41 @@ data = get_crypto_data()
 news = get_crypto_news()
 
 if data:
-    # Market Leaders Title (White), Tokens ($
+    # Market Leaders Title (White), Tokens ($ BITCOIN) in Yellow
+    st.subheader("Market Leaders")
+    m1, m2, m3 = st.columns(3)
+    
+    target_symbols = ['btc', 'eth', 'doge']
+    cols = [m1, m2, m3]
+    
+    for i, sym in enumerate(target_symbols):
+        coin = next((c for c in data if c['symbol'] == sym), None)
+        if coin:
+            with cols[i]:
+                # Correct indentation for the metric
+                st.metric(
+                    label=f"$ {coin['name']}", 
+                    value=f"${coin['current_price']:,}", 
+                    delta=f"{round(coin['price_change_percentage_24h'], 2)}%"
+                )
+
+    st.write("---")
+
+    # 4. GEMS & NEWS LAYOUT
+    col_left, col_right = st.columns([1.8, 1.2])
+
+    with col_left:
+        # --- YOUR ROBINHOOD AD ---
+        st.markdown("""
+            <div class="rh-card">
+                <h2 style="color:#00c805; margin:0;">🏹 Robinhood Gold</h2>
+                <p style="color:white; margin:10px 0; font-size:1.1rem;">Sign up with my link and we'll both pick our own <b>Gift Stock</b> 🎁</p>
+                <a href="https://join.robinhood.com/joser1057" target="_blank" class="rh-button">Claim Your Gift Stock →</a>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.subheader("Small-Cap Gem Scanner")
+        max_cap = st.slider("Max Market Cap (Millions $)", 1, 1000, 250)
+        
+        # Filter logic
+        gems = [c for c in data if (c["market_cap"] / 1_000_000
