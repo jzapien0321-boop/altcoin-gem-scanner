@@ -38,6 +38,25 @@ st.markdown("""
         margin-top: 15px;
         font-size: 1rem;
     }
+    .chime-card {
+        border: 2px solid #00d4a3;
+        background-color: #0a1f1c;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .chime-button {
+        background-color: #00d4a3;
+        color: black !important;
+        padding: 12px 24px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: bold;
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 1rem;
+    }
     .fear-box {
         padding: 20px;
         border-radius: 12px;
@@ -152,7 +171,7 @@ if data:
     left_side, right_side = st.columns([1.8, 1.2])
 
     with left_side:
-        st.markdown(f"""
+        st.markdown("""
             <div class="rh-card">
                 <h2 style="color:#00c805; margin:0;">🏹 Robinhood Gold</h2>
                 <p style="color:white; margin:10px 0; font-size:1.1rem;">Sign up with my link and we'll both pick our own <b>Gift Stock</b> 🎁</p>
@@ -160,8 +179,16 @@ if data:
             </div>
             """, unsafe_allow_html=True)
 
+        st.markdown("""
+            <div class="chime-card">
+                <h2 style="color:#00d4a3; margin:0;">🏦 Join Chime — Get $100</h2>
+                <p style="color:white; margin:10px 0; font-size:1.1rem;">Sign up with my link and get <b>$100 cash</b> 💵 Terms apply.</p>
+                <a href="https://www.chime.com/r/josezapien/?c=s" target="_blank" class="chime-button">Claim Your $100 →</a>
+            </div>
+            """, unsafe_allow_html=True)
+
         st.subheader("🔍 Search a Coin")
-        search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL, DOGE)")
+        search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL, DOGE)", key="search")
 
         st.subheader("💎 Altcoin Scanner")
         max_cap_m = st.slider("Max Market Cap (Billions $)", 1, 2000, 2000)
