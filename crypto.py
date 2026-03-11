@@ -1,15 +1,11 @@
 import streamlit as st
 import requests
-import time
 
-# 1. THEME & MOBILE SETUP
 st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; color: #ffffff; }
-    
-    /* Yellow Labels ($ DOGECOIN) */
     [data-testid="stMetricLabel"] { 
         color: #ffff00 !important; 
         font-weight: bold !important; 
@@ -23,8 +19,6 @@ st.markdown("""
         border-radius: 12px; 
         border: 1px solid #374151; 
     }
-    
-    /* Robinhood Green Ad */
     .rh-card { 
         border: 2px solid #00c805; 
         background-color: #111b13; 
@@ -47,7 +41,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. CACHED DATA FETCHING
 @st.cache_data(ttl=300)
 def get_crypto_data():
     url = "https://api.coingecko.com/api/v3/coins/markets"
@@ -67,32 +60,25 @@ def get_crypto_news():
     except:
         return []
 
-# 3. HEADER LAYOUT (TITLE + NEW ISOLATED LOGO)
 col_title, col_logo = st.columns([3, 1])
-
 with col_title:
     st.title("💎 Altcoin Gem Scanner")
     st.subheader("Market Leaders")
-
 with col_logo:
-    # --- HERE IS THE SPECIFIC CIRCULAR BITCOIN EMBLEM YOU WANTED ---
-    # We use this high-quality vector link to replicate the professional icon look.
     st.image("https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg", width=160)
 
-data = get_crypto_data()
-news = get_crypto_news()
+with st.spinner("Loading market data..."):
+    data = get_crypto_data()
+    news = get_crypto_news()
 
 if data:
-    # TOP ROW LEADERS
     m1, m2, m3 = st.columns(3)
     target_symbols = ['btc', 'eth', 'doge']
     cols = [m1, m2, m3]
-    
     for i, sym in enumerate(target_symbols):
         coin = next((c for c in data if c['symbol'] == sym), None)
         if coin:
             with cols[i]:
-                # We show the metric, and skip the generic icon since the master logo is at the top.
                 st.metric(
                     label=f"$ {coin['name']}", 
                     value=f"${coin['current_price']:,}", 
@@ -101,11 +87,9 @@ if data:
 
     st.write("---")
 
-    # 4. GEMS & NEWS SPLIT LAYOUT
     left_side, right_side = st.columns([1.8, 1.2])
 
     with left_side:
-        # ROBINHOOD BANNER
         st.markdown(f"""
             <div class="rh-card">
                 <h2 style="color:#00c805; margin:0;">🏹 Robinhood Gold</h2>
@@ -115,16 +99,10 @@ if data:
             """, unsafe_allow_html=True)
 
         st.subheader("Small-Cap Gem Scanner")
-        
-        # ACTIVE SLIDER
-        max_cap_m = st.slider("Max Market Cap (Millions $)", 1, 1000, 250)
-        
-        # BRACKET ERROR FIXED IN THIS LINE:
+        max_cap_m = st.slider("Max Market Cap (Millions $)", 1, 1000, 500)
         gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) <= max_cap_m]
-        
-        # Skip the top coins to find real "gems"
         final_gems = [g for g in gems if g['symbol'] not in ['btc', 'eth', 'usdt', 'bnb', 'sol', 'xrp', 'doge']]
-        
+
         if not final_gems:
             st.info("Try moving the slider to the right to see more gems.")
         else:
@@ -132,8 +110,10 @@ if data:
                 change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
                 mcap = round(coin['market_cap'] / 1_000_000, 1)
                 text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${mcap}M | {change}%"
-                if change > 0: st.success(text)
-                else: st.error(text)
+                if change > 0:
+                    st.success(text)
+                else:
+                    st.error(text)
 
     with right_side:
         st.subheader("Latest News")
@@ -148,10 +128,10 @@ if data:
                 st.write("---")
         else:
             st.info("Fetching latest headlines...")
+
+    if st.button("🔄 Sync Everything"):
+        st.cache_data.clear()
+        st.rerun()
 else:
     st.warning("🔄 Fetching Market Data... Please wait 30 seconds.")
-
-# 5. SYNC
-if st.button("🔄 Sync Everything"):
-    st.cache_data.clear()
     st.rerun()
