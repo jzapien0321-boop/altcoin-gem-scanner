@@ -38,6 +38,14 @@ st.markdown("""
         margin-top: 15px;
         font-size: 1rem;
     }
+    .fear-box {
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -60,6 +68,23 @@ def get_crypto_news():
     except:
         return []
 
+@st.cache_data(ttl=300)
+def get_fear_greed():
+    try:
+        r = requests.get("https://api.alternative.me/fng/", timeout=10)
+        d = r.json()['data'][0]
+        return d['value'], d['value_classification']
+    except:
+        return None, None
+
+@st.cache_data(ttl=300)
+def get_trending():
+    try:
+        r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        return r.json().get('coins', [])[:3]
+    except:
+        return []
+
 col_title, col_logo = st.columns([3, 1])
 with col_title:
     st.title("💎 Altcoin Gem Scanner")
@@ -70,6 +95,8 @@ with col_logo:
 with st.spinner("Loading market data..."):
     data = get_crypto_data()
     news = get_crypto_news()
+    fg_value, fg_label = get_fear_greed()
+    trending = get_trending()
 
 if data:
     m1, m2, m3 = st.columns(3)
@@ -87,6 +114,42 @@ if data:
 
     st.write("---")
 
+    if fg_value:
+        fg_int = int(fg_value)
+        if fg_int >= 75:
+            color = "#ff4444"
+            emoji = "🔴 Extreme Greed"
+        elif fg_int >= 55:
+            color = "#ff8800"
+            emoji = "🟠 Greed"
+        elif fg_int >= 45:
+            color = "#ffff00"
+            emoji = "🟡 Neutral"
+        elif fg_int >= 25:
+            color = "#00aaff"
+            emoji = "🔵 Fear"
+        else:
+            color = "#aa00ff"
+            emoji = "🟣 Extreme Fear"
+        
+        st.markdown(f"""
+            <div class="fear-box" style="background-color: {color}22; border: 2px solid {color};">
+                Market Sentiment: {emoji} — Score: {fg_value}/100 ({fg_label})
+            </div>
+        """, unsafe_allow_html=True)
+
+    if trending:
+        st.markdown("### 🔥 Top 3 Trending Right Now")
+        t1, t2, t3 = st.columns(3)
+        tcols = [t1, t2, t3]
+        for i, coin in enumerate(trending):
+            with tcols[i]:
+                item = coin['item']
+                st.markdown(f"**#{i+1} {item['name']}** ({item['symbol']})")
+                st.caption(f"Rank #{item['market_cap_rank']}")
+
+    st.write("---")
+
     left_side, right_side = st.columns([1.8, 1.2])
 
     with left_side:
@@ -98,19 +161,28 @@ if data:
             </div>
             """, unsafe_allow_html=True)
 
+        st.subheader("🔍 Search a Coin")
+        search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL)")
+        
         st.subheader("Small-Cap Gem Scanner")
         max_cap_m = st.slider("Max Market Cap (Millions $)", 1, 1000, 500)
         gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) <= max_cap_m]
         final_gems = [g for g in gems if g['symbol'] not in ['btc', 'eth', 'usdt', 'bnb', 'sol', 'xrp', 'doge']]
 
+        if search:
+            search_lower = search.lower()
+            final_gems = [g for g in final_gems if search_lower in g['name'].lower() or search_lower in g['symbol'].lower()]
+
         if not final_gems:
-            st.info("Try moving the slider to the right to see more gems.")
+            st.info("No coins found. Try adjusting the slider or search term.")
         else:
             for coin in final_gems[:15]:
                 change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
                 mcap = round(coin['market_cap'] / 1_000_000, 1)
                 text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${mcap}M | {change}%"
-                if change > 0:
+                if change <= -5:
+                    st.error("🚨 DIP ALERT: " + text)
+                elif change > 0:
                     st.success(text)
                 else:
                     st.error(text)
