@@ -1,4 +1,4 @@
-streamlit as st
+import streamlit as st
 import requests
 
 st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
@@ -161,21 +161,23 @@ if data:
             """, unsafe_allow_html=True)
 
         st.subheader("🔍 Search a Coin")
-        search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL)")
+        search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL, DOGE)")
 
-        st.subheader("Small-Cap Gem Scanner")
-        max_cap_m = st.slider("Max Market Cap (Millions $)", 1, 1000, 500)
-        gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) <= max_cap_m]
-        final_gems = [g for g in gems if g['symbol'] not in ['btc', 'eth', 'usdt', 'bnb', 'sol', 'xrp', 'doge']]
+        st.subheader("💎 Altcoin Scanner")
+        max_cap_m = st.slider("Max Market Cap (Billions $)", 1, 2000, 2000)
+
+        all_alts = [g for g in data if g['symbol'] not in ['btc', 'usdt', 'usdc', 'usd1']]
 
         if search:
             search_lower = search.lower()
-            final_gems = [g for g in final_gems if search_lower in g['name'].lower() or search_lower in g['symbol'].lower()]
-
-        if not final_gems:
-            st.info("No coins found. Try adjusting the slider or search term.")
+            display_coins = [g for g in data if search_lower in g['name'].lower() or search_lower in g['symbol'].lower()]
         else:
-            for coin in final_gems[:15]:
+            display_coins = [g for g in all_alts if g.get("market_cap") and (g["market_cap"] / 1_000_000) <= max_cap_m]
+
+        if not display_coins:
+            st.info("No coins found. Try a different search term.")
+        else:
+            for coin in display_coins[:20]:
                 change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
                 mcap = round(coin['market_cap'] / 1_000_000, 1)
                 text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${mcap}M | {change}%"
