@@ -1,4 +1,4 @@
-import streamlit as st
+streamlit as st
 import requests
 
 st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
@@ -92,11 +92,10 @@ with col_title:
 with col_logo:
     st.image("https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg", width=160)
 
-with st.spinner("Loading market data..."):
-    data = get_crypto_data()
-    news = get_crypto_news()
-    fg_value, fg_label = get_fear_greed()
-    trending = get_trending()
+data = get_crypto_data()
+news = get_crypto_news()
+fg_value, fg_label = get_fear_greed()
+trending = get_trending()
 
 if data:
     m1, m2, m3 = st.columns(3)
@@ -107,8 +106,8 @@ if data:
         if coin:
             with cols[i]:
                 st.metric(
-                    label=f"$ {coin['name']}", 
-                    value=f"${coin['current_price']:,}", 
+                    label=f"$ {coin['name']}",
+                    value=f"${coin['current_price']:,}",
                     delta=f"{round(coin.get('price_change_percentage_24h', 0) or 0, 2)}%"
                 )
 
@@ -131,7 +130,7 @@ if data:
         else:
             color = "#aa00ff"
             emoji = "🟣 Extreme Fear"
-        
+
         st.markdown(f"""
             <div class="fear-box" style="background-color: {color}22; border: 2px solid {color};">
                 Market Sentiment: {emoji} — Score: {fg_value}/100 ({fg_label})
@@ -163,7 +162,7 @@ if data:
 
         st.subheader("🔍 Search a Coin")
         search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL)")
-        
+
         st.subheader("Small-Cap Gem Scanner")
         max_cap_m = st.slider("Max Market Cap (Millions $)", 1, 1000, 500)
         gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) <= max_cap_m]
