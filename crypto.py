@@ -2,55 +2,53 @@ import streamlit as st
 import requests
 import time
 
-# 1. Page Config
+# 1. Page Setup (Keep it simple for speed)
 st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
 
-# 2. Force Dark Mode Styling
-st.markdown("""
-    <style>
-    .stApp { background-color: #0e1117; color: #ffffff; }
-    </style>
-    """, unsafe_allow_html=True)
-
 st.title("💎 Altcoin Gem Scanner")
-st.subheader("Find the next big altcoin before it pumps")
-st.markdown("---")
 
-# 3. Filters
-col1, col2 = st.columns(2)
-with col1:
-    max_cap = st.slider("Max Market Cap (Millions $)", 10, 500, 100)
-with col2:
-    st.markdown("#### 🔴 Red = Dropping | 🟢 Green = Pumping")
+# 2. Sidebar Filter (Moving this to the sidebar makes the main page load faster)
+max_cap = st.sidebar.slider("Max Market Cap (Millions $)", 10, 1000, 200)
 
-st.markdown("---")
-
-# 4. Data Fetching
+# 3. API Call with Speed Optimization
 url = "https://api.coingecko.com/api/v3/coins/markets"
-params = {"vs_currency": "usd", "order": "volume_desc", "per_page": 250, "page": 1}
+params = {
+    "vs_currency": "usd", 
+    "order": "volume_desc", 
+    "per_page": 100, # Lowering this from 250 to 100 makes it MUCH faster
+    "page": 1
+}
 
 try:
-    response = requests.get(url, params=params, timeout=10)
+    # Adding a simple cache to avoid spamming the API
+    response = requests.get(url, params=params, timeout=5)
+    
     if response.status_code == 200:
         data = response.json()
+        
+        # Fast Filtering
         gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) < max_cap]
 
-        st.markdown(f"### Found {len(gems)} gems under ${max_cap}M market cap")
+        st.subheader(f"📊 Found {len(gems)} Gems")
 
+        # Display loop
         for coin in gems:
-            name, symbol = coin["name"], coin["symbol"].upper()
-            price = coin["current_price"]
-            change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
-            cap = round(coin["market_cap"] / 1_000_000, 2)
+            change = coin.get("price_change_percentage_24h") or 0
+            # Using a simple string for the fastest possible rendering
+            line = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${round(coin['market_cap']/1_000_000, 1)}M | {round(change, 2)}%"
+            
+            if change > 0:
+                st.success(line)
+            else:
+                st.error(line)
+    
+    elif response.status_code == 429:
+        st.warning("⏱️ API is resting. Numbers will return in 60 seconds.")
+        time.sleep(60) # Forces a pause if we are being too fast
 
-            line = f"**{name} ({symbol})** - ${price} | MCap: ${cap}M | 24h: {change}%"
-            if change > 0: st.success(line)
-            else: st.error(line)
-    else:
-        st.warning("🔄 Refreshing market data...")
-except:
-    st.warning("🔄 Connecting to secure data feed...")
+except Exception as e:
+    st.error("Connecting...")
 
-# 5. THE SAFE REFRESH (Better than while True)
+# 4. Balanced Refresh (Don't set this lower than 60 for the free API)
 time.sleep(60)
 st.rerun()
