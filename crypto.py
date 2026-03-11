@@ -182,7 +182,7 @@ if data:
         st.markdown("""
             <div class="chime-card">
                 <h2 style="color:#00d4a3; margin:0;">🏦 Join Chime — Get $100</h2>
-                <p style="color:white; margin:10px 0; font-size:1.1rem;">Sign up with my link and get <b>$100 cash</b> 💵 Terms apply.</p>
+                <p style="color:white; margin:10px 0; font-size:1.1rem;">Sign up and get <b>$100 cash</b> 💵 Terms apply.</p>
                 <a href="https://www.chime.com/r/josezapien/?c=s" target="_blank" class="chime-button">Claim Your $100 →</a>
             </div>
             """, unsafe_allow_html=True)
@@ -191,7 +191,7 @@ if data:
         search = st.text_input("Type a coin name or symbol (e.g. PEPE, SOL, DOGE)", key="search")
 
         st.subheader("💎 Altcoin Scanner")
-        max_cap_m = st.slider("Max Market Cap (Billions $)", 1, 2000, 2000)
+        max_cap_b = st.slider("Max Market Cap (Billions $)", 1, 2000, 2000)
 
         all_alts = [g for g in data if g['symbol'] not in ['btc', 'usdt', 'usdc', 'usd1']]
 
@@ -199,15 +199,15 @@ if data:
             search_lower = search.lower()
             display_coins = [g for g in data if search_lower in g['name'].lower() or search_lower in g['symbol'].lower()]
         else:
-            display_coins = [g for g in all_alts if g.get("market_cap") and (g["market_cap"] / 1_000_000) <= max_cap_m]
+            display_coins = [g for g in all_alts if g.get("market_cap") and (g["market_cap"] / 1_000_000_000) <= max_cap_b]
 
         if not display_coins:
             st.info("No coins found. Try a different search term.")
         else:
             for coin in display_coins[:20]:
                 change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
-                mcap = round(coin['market_cap'] / 1_000_000, 1)
-                text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${mcap}M | {change}%"
+                mcap = round(coin['market_cap'] / 1_000_000_000, 2)
+                text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${mcap}B | {change}%"
                 if change <= -5:
                     st.error("🚨 DIP ALERT: " + text)
                 elif change > 0:
@@ -232,6 +232,9 @@ if data:
     if st.button("🔄 Sync Everything"):
         st.cache_data.clear()
         st.rerun()
+
 else:
-    st.warning("🔄 Fetching Market Data... Please wait 30 seconds.")
-    st.rerun()
+    st.warning("⚠️ Market data temporarily unavailable. Please try again in a moment.")
+    if st.button("🔄 Try Again"):
+        st.cache_data.clear()
+        st.rerun()
