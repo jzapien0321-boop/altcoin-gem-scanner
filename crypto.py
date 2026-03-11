@@ -6,10 +6,7 @@ st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="w
 
 st.markdown("""
     <style>
-    /* Dark Mode Base */
     .stApp { background-color: #0e1117; color: #ffffff; }
-    
-    /* Market Leaders: Yellow Token Names ($ BITCOIN) */
     [data-testid="stMetricLabel"] { 
         color: #ffff00 !important; 
         font-weight: bold !important; 
@@ -23,8 +20,6 @@ st.markdown("""
         border-radius: 12px; 
         border: 1px solid #374151; 
     }
-    
-    /* Official Robinhood Green Ad Styling */
     .rh-card { 
         border: 2px solid #00c805; 
         background-color: #111b13; 
@@ -47,7 +42,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. DATA CACHING (Critical for S23 Loading)
+# 2. DATA CACHING
 @st.cache_data(ttl=300)
 def get_crypto_data():
     url = "https://api.coingecko.com/api/v3/coins/markets"
@@ -74,7 +69,6 @@ data = get_crypto_data()
 news = get_crypto_news()
 
 if data:
-    # Market Leaders Title (White), Tokens ($ BITCOIN) in Yellow
     st.subheader("Market Leaders")
     m1, m2, m3 = st.columns(3)
     
@@ -85,11 +79,10 @@ if data:
         coin = next((c for c in data if c['symbol'] == sym), None)
         if coin:
             with cols[i]:
-                # Correct indentation for the metric
                 st.metric(
                     label=f"$ {coin['name']}", 
                     value=f"${coin['current_price']:,}", 
-                    delta=f"{round(coin['price_change_percentage_24h'], 2)}%"
+                    delta=f"{round(coin.get('price_change_percentage_24h', 0) or 0, 2)}%"
                 )
 
     st.write("---")
@@ -98,7 +91,7 @@ if data:
     col_left, col_right = st.columns([1.8, 1.2])
 
     with col_left:
-        # --- YOUR ROBINHOOD AD ---
+        # --- ROBINHOOD AD ---
         st.markdown("""
             <div class="rh-card">
                 <h2 style="color:#00c805; margin:0;">🏹 Robinhood Gold</h2>
@@ -110,5 +103,36 @@ if data:
         st.subheader("Small-Cap Gem Scanner")
         max_cap = st.slider("Max Market Cap (Millions $)", 1, 1000, 250)
         
-        # Filter logic
-        gems = [c for c in data if (c["market_cap"] / 1_000_000
+        # BRACKETS FIXED HERE
+        gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) <= max_cap]
+        final_gems = gems[10:50] 
+        
+        if not final_gems:
+            st.info("Searching for gems... try a higher Market Cap.")
+        else:
+            for coin in final_gems:
+                change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
+                mcap = round(coin['market_cap'] / 1_000_000, 1)
+                text = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | ${mcap}M | {change}%"
+                if change > 0:
+                    st.success(text)
+                else:
+                    st.error(text)
+
+    with col_right:
+        st.subheader("Latest News")
+        if news:
+            for n in news:
+                n_col1, n_col2 = st.columns([1, 3])
+                with n_col1:
+                    st.image(n.get('imageurl'), use_container_width=True)
+                with n_col2:
+                    st.markdown(f"**[{n['title']}]({n['url']})**")
+                    st.caption(f"Source: {n['source']}")
+                st.write("---")
+else:
+    st.warning("🔄 Fetching Data... Please refresh in a moment.")
+
+if st.button("🔄 Sync Everything"):
+    st.cache_data.clear()
+    st.rerun()
