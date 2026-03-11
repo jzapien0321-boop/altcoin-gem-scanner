@@ -1,54 +1,77 @@
 import streamlit as st
 import requests
-import time
 
-# 1. Page Setup (Keep it simple for speed)
-st.set_page_config(page_title="Altcoin Gem Scanner", page_icon="💎", layout="wide")
+# 1. Performance & Theme Setup
+st.set_page_config(
+    page_title="Altcoin Gem Scanner",
+    page_icon="💎",
+    layout="wide"
+)
 
+# 2. Force Dark Mode (Direct CSS Injection)
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    /* Simple colored text for mobile speed */
+    .pumping { color: #00ffcc; font-weight: bold; }
+    .dropping { color: #ff4b4b; font-weight: bold; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 3. Fast Data Loading (Caching)
+# This saves the data for 120 seconds to prevent API lag
+@st.cache_data(ttl=120)
+def fetch_market_data():
+    url = "https://api.coingecko.com/api/v3/coins/markets"
+    params = {
+        "vs_currency": "usd",
+        "order": "volume_desc",
+        "per_page": 80, # Reduced count for instant mobile loading
+        "page": 1
+    }
+    try:
+        r = requests.get(url, params=params, timeout=5)
+        if r.status_code == 200:
+            return r.json()
+    except:
+        pass
+    return []
+
+# 4. Header Section
 st.title("💎 Altcoin Gem Scanner")
+st.write("---")
 
-# 2. Sidebar Filter (Moving this to the sidebar makes the main page load faster)
-max_cap = st.sidebar.slider("Max Market Cap (Millions $)", 10, 1000, 200)
+# 5. Filter Controls
+max_cap = st.slider("Max Market Cap (Millions $)", 10, 500, 100)
 
-# 3. API Call with Speed Optimization
-url = "https://api.coingecko.com/api/v3/coins/markets"
-params = {
-    "vs_currency": "usd", 
-    "order": "volume_desc", 
-    "per_page": 100, # Lowering this from 250 to 100 makes it MUCH faster
-    "page": 1
-}
+# 6. Main Logic
+data = fetch_market_data()
 
-try:
-    # Adding a simple cache to avoid spamming the API
-    response = requests.get(url, params=params, timeout=5)
+if data:
+    # Quick Filter logic
+    gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) < max_cap]
     
-    if response.status_code == 200:
-        data = response.json()
-        
-        # Fast Filtering
-        gems = [c for c in data if c.get("market_cap") and (c["market_cap"] / 1_000_000) < max_cap]
+    st.subheader(f"📊 Tracking {len(gems)} Potential Gems")
 
-        st.subheader(f"📊 Found {len(gems)} Gems")
+    for coin in gems:
+        name = coin["name"]
+        symbol = coin["symbol"].upper()
+        price = coin["current_price"]
+        change = round(coin.get("price_change_percentage_24h", 0) or 0, 2)
+        mcap = round(coin["market_cap"] / 1_000_000, 1)
 
-        # Display loop
-        for coin in gems:
-            change = coin.get("price_change_percentage_24h") or 0
-            # Using a simple string for the fastest possible rendering
-            line = f"**{coin['name']}** ({coin['symbol'].upper()}) | ${coin['current_price']} | MCap: ${round(coin['market_cap']/1_000_000, 1)}M | {round(change, 2)}%"
-            
-            if change > 0:
-                st.success(line)
-            else:
-                st.error(line)
-    
-    elif response.status_code == 429:
-        st.warning("⏱️ API is resting. Numbers will return in 60 seconds.")
-        time.sleep(60) # Forces a pause if we are being too fast
+        # Faster rendering for mobile: Simple color-coded lines
+        if change > 0:
+            st.markdown(f"🟢 **{name} ({symbol})** | ${price} | Cap: ${mcap}M | +{change}%")
+        else:
+            st.markdown(f"🔴 **{name} ({symbol})** | ${price} | Cap: ${mcap}M | {change}%")
+else:
+    st.warning("🔄 Fetching fresh market data... Try again in a few seconds.")
 
-except Exception as e:
-    st.error("Connecting...")
-
-# 4. Balanced Refresh (Don't set this lower than 60 for the free API)
-time.sleep(60)
-st.rerun()
+# 7. Manual Refresh (Saves Battery and Data)
+if st.button("🔄 Check for New Pumps"):
+    st.cache_data.clear()
+    st.rerun()
